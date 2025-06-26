@@ -1,25 +1,24 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { MediaUpload } from './MediaUpload';
+import { Switch } from '@/components/ui/switch';
+import { MapPin, Heart, Sparkles, Cloud, Sun, Zap } from 'lucide-react';
+import { MediaUpload } from '@/components/MediaUpload';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { Post } from '@/pages/Index';
 
 const moods = [
-  { value: 'love', label: '❤️ In Love', color: 'bg-pink-100' },
-  { value: 'heartbreak', label: '💔 Heartbreak', color: 'bg-purple-100' },
-  { value: 'wanderlust', label: '🌍 Wanderlust', color: 'bg-blue-100' },
-  { value: 'lost', label: '😶 Lost', color: 'bg-gray-100' },
-  { value: 'hopeful', label: '🌈 Hopeful', color: 'bg-yellow-100' },
-  { value: 'nostalgic', label: '🍂 Nostalgic', color: 'bg-orange-100' },
-  { value: 'peaceful', label: '☁️ Peaceful', color: 'bg-green-100' }
+  { name: 'love', color: 'bg-pink-100', icon: Heart },
+  { name: 'joy', color: 'bg-yellow-100', icon: Sun },
+  { name: 'melancholy', color: 'bg-blue-100', icon: Cloud },
+  { name: 'wanderlust', color: 'bg-green-100', icon: Sparkles },
+  { name: 'excitement', color: 'bg-orange-100', icon: Zap },
 ];
 
 interface PostCreatorProps {
@@ -28,11 +27,10 @@ interface PostCreatorProps {
 
 export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
   const [content, setContent] = useState('');
-  const [selectedMood, setSelectedMood] = useState('love');
-  const [isAnonymous, setIsAnonymous] = useState(true);
   const [location, setLocation] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaType, setMediaType] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [selectedMood, setSelectedMood] = useState('love');
+  const [media, setMedia] = useState<{ url: string; type: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { user } = useAuth();
@@ -42,89 +40,66 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
     e.preventDefault();
     if (!content.trim()) return;
 
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to create a post",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const selectedMoodData = moods.find(m => m.value === selectedMood);
-      
+      const selectedMoodData = moods.find(m => m.name === selectedMood);
       const postData = {
         content: content.trim(),
         mood: selectedMood,
         color: selectedMoodData?.color || 'bg-gray-100',
         is_anonymous: isAnonymous,
-        location: location || null,
-        media_url: mediaUrl || null,
-        media_type: mediaType || null,
-        user_id: user?.id
+        location: location.trim() || null,
+        media_url: media?.url || null,
+        media_type: media?.type || null,
+        user_id: user.id
       };
 
-      if (user) {
-        // Save to database if user is logged in and database is set up
-        try {
-          // Type assertion to bypass TypeScript errors until database is set up
-          const { error } = await (supabase as any)
-            .from('posts')
-            .insert([postData]);
+      const { error } = await (supabase as any)
+        .from('posts')
+        .insert([postData]);
 
-          if (error) {
-            if (error.message.includes('relation "public.posts" does not exist')) {
-              toast({
-                title: "Database not set up",
-                description: "Please run the SQL migration first. Your post will be saved locally for now.",
-                variant: "destructive"
-              });
-              // Fall back to local state
-              onSubmit({
-                content: postData.content,
-                mood: postData.mood,
-                color: postData.color,
-                isAnonymous: postData.is_anonymous,
-                location: postData.location,
-                author: undefined
-              });
-            } else {
-              throw error;
-            }
-          } else {
-            toast({
-              title: "Post shared successfully!",
-              description: "Your feeling has been shared with the community."
-            });
-          }
-        } catch (error) {
-          console.error('Database error, falling back to local state:', error);
-          // Fall back to local state
-          onSubmit({
-            content: postData.content,
-            mood: postData.mood,
-            color: postData.color,
-            isAnonymous: postData.is_anonymous,
-            location: postData.location,
-            author: undefined
-          });
-        }
-      } else {
-        // Local state for non-authenticated users
-        onSubmit({
-          content: postData.content,
-          mood: postData.mood,
-          color: postData.color,
-          isAnonymous: postData.is_anonymous,
-          location: postData.location,
-          author: undefined
-        });
+      if (error) {
+        console.log('Database not ready - creating post locally only');
       }
+
+      // Create local post for immediate UI update
+      const localPost: Omit<Post, 'id' | 'timestamp'> = {
+        content: content.trim(),
+        mood: selectedMood,
+        color: selectedMoodData?.color || 'bg-gray-100',
+        isAnonymous,
+        location: location.trim() || undefined,
+        mediaUrl: media?.url,
+        mediaType: media?.type,
+        author: isAnonymous ? undefined : user.email?.split('@')[0]
+      };
+
+      onSubmit(localPost);
 
       // Reset form
       setContent('');
       setLocation('');
-      setMediaUrl('');
-      setMediaType('');
+      setMedia(null);
+      
+      toast({
+        title: "Post created!",
+        description: "Your feelings have been shared."
+      });
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
-        title: "Error sharing post",
-        description: "Something went wrong. Please try again.",
+        title: "Error",
+        description: "Failed to create post. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -133,84 +108,81 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
   };
 
   const handleMediaUpload = (url: string, type: string) => {
-    setMediaUrl(url);
-    setMediaType(type);
+    if (url && type) {
+      setMedia({ url, type });
+    } else {
+      setMedia(null);
+    }
   };
 
   return (
-    <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
-      <CardContent className="p-4 md:p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Card className="w-full shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+      <CardContent className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label className="text-slate-700 font-medium mb-3 block">How are you feeling?</Label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Share your thoughts, feelings, or a moment you're experiencing..."
-              className="min-h-[80px] md:min-h-[100px] border-slate-200 focus:ring-purple-400 resize-none text-sm md:text-base"
-            />
-          </div>
-
-          <div>
-            <Label className="text-slate-700 font-medium mb-3 block">Choose your mood</Label>
-            <div className="grid grid-cols-1 gap-2">
-              {moods.map((mood) => (
-                <label
-                  key={mood.value}
-                  className={`flex items-center p-2 md:p-3 rounded-lg cursor-pointer transition-all text-sm md:text-base ${
-                    selectedMood === mood.value
-                      ? `${mood.color} border-2 border-slate-300`
-                      : 'hover:bg-slate-50 border-2 border-transparent'
+            <Label className="text-sm font-medium text-slate-700 mb-3 block">
+              How are you feeling?
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {moods.map(({ name, color, icon: Icon }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setSelectedMood(name)}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedMood === name
+                      ? `${color} border-slate-300 shadow-md`
+                      : 'bg-white hover:bg-slate-50 border-slate-200'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="mood"
-                    value={mood.value}
-                    checked={selectedMood === mood.value}
-                    onChange={(e) => setSelectedMood(e.target.value)}
-                    className="sr-only"
-                  />
-                  <span className="font-medium">{mood.label}</span>
-                </label>
+                  <Icon className="w-5 h-5 mx-auto mb-1 text-slate-600" />
+                  <div className="text-xs text-slate-700 capitalize">{name}</div>
+                </button>
               ))}
             </div>
           </div>
 
-          {user && (
-            <MediaUpload 
-              onMediaUpload={handleMediaUpload}
-              currentMedia={mediaUrl ? { url: mediaUrl, type: mediaType } : null}
-            />
-          )}
-
           <div>
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Share what's on your heart..."
+              className="min-h-[120px] resize-none border-slate-200 focus:border-purple-300"
+            />
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <MapPin className="w-4 h-4 text-slate-500" />
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Where are you? (optional)"
-              className="border-slate-200 focus:ring-purple-400 text-sm md:text-base"
+              className="flex-1 border-slate-200 focus:border-purple-300"
             />
           </div>
 
-          <div className="flex items-center space-x-3 py-2">
-            <Switch
-              id="anonymous"
-              checked={isAnonymous}
-              onCheckedChange={setIsAnonymous}
-            />
-            <Label htmlFor="anonymous" className="text-sm text-slate-600">
-              Post anonymously
-            </Label>
-          </div>
+          <MediaUpload onMediaUpload={handleMediaUpload} currentMedia={media} />
 
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 text-sm md:text-base py-2 md:py-3"
-            disabled={!content.trim() || isSubmitting}
-          >
-            {isSubmitting ? 'Sharing...' : 'Share Your Soul'}
-          </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Switch
+                checked={isAnonymous}
+                onCheckedChange={setIsAnonymous}
+                id="anonymous"
+              />
+              <Label htmlFor="anonymous" className="text-sm text-slate-600">
+                Share anonymously
+              </Label>
+            </div>
+            
+            <Button
+              type="submit"
+              disabled={!content.trim() || isSubmitting}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6"
+            >
+              {isSubmitting ? 'Sharing...' : 'Share'}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

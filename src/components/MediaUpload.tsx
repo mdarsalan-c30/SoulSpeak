@@ -50,7 +50,6 @@ export const MediaUpload = ({ onMediaUpload, currentMedia }: MediaUploadProps) =
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Type assertion to bypass TypeScript errors until storage is set up
       const { error: uploadError } = await (supabase.storage as any)
         .from('media')
         .upload(fileName, file);

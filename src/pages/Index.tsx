@@ -54,7 +54,6 @@ const Index = () => {
 
   const fetchPosts = async () => {
     try {
-      // Type assertion to bypass TypeScript errors until database is set up
       const { data, error } = await (supabase as any)
         .from('posts')
         .select(`
