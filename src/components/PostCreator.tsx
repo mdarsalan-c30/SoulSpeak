@@ -6,6 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { MediaUpload } from './MediaUpload';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import type { Post } from '@/pages/Index';
 
 const moods = [
@@ -26,31 +30,83 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
   const [content, setContent] = useState('');
   const [selectedMood, setSelectedMood] = useState('love');
   const [isAnonymous, setIsAnonymous] = useState(true);
-  const [author, setAuthor] = useState('');
   const [location, setLocation] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
 
-    const selectedMoodData = moods.find(m => m.value === selectedMood);
-    
-    onSubmit({
-      content: content.trim(),
-      mood: selectedMood,
-      color: selectedMoodData?.color || 'bg-gray-100',
-      isAnonymous,
-      author: isAnonymous ? undefined : author || undefined,
-      location: location || undefined
-    });
+    setIsSubmitting(true);
 
-    setContent('');
-    setLocation('');
+    try {
+      const selectedMoodData = moods.find(m => m.value === selectedMood);
+      
+      const postData = {
+        content: content.trim(),
+        mood: selectedMood,
+        color: selectedMoodData?.color || 'bg-gray-100',
+        is_anonymous: isAnonymous,
+        location: location || null,
+        media_url: mediaUrl || null,
+        media_type: mediaType || null,
+        user_id: user?.id
+      };
+
+      if (user) {
+        // Save to database if user is logged in
+        const { error } = await supabase
+          .from('posts')
+          .insert([postData]);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Post shared successfully!",
+          description: "Your feeling has been shared with the community."
+        });
+      } else {
+        // Local state for non-authenticated users
+        onSubmit({
+          content: postData.content,
+          mood: postData.mood,
+          color: postData.color,
+          isAnonymous: postData.is_anonymous,
+          location: postData.location,
+          author: undefined
+        });
+      }
+
+      // Reset form
+      setContent('');
+      setLocation('');
+      setMediaUrl('');
+      setMediaType('');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Error sharing post",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMediaUpload = (url: string, type: string) => {
+    setMediaUrl(url);
+    setMediaType(type);
   };
 
   return (
     <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label className="text-slate-700 font-medium mb-3 block">How are you feeling?</Label>
@@ -58,7 +114,7 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Share your thoughts, feelings, or a moment you're experiencing..."
-              className="min-h-[100px] border-slate-200 focus:ring-purple-400 resize-none"
+              className="min-h-[80px] md:min-h-[100px] border-slate-200 focus:ring-purple-400 resize-none text-sm md:text-base"
             />
           </div>
 
@@ -68,7 +124,7 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
               {moods.map((mood) => (
                 <label
                   key={mood.value}
-                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${
+                  className={`flex items-center p-2 md:p-3 rounded-lg cursor-pointer transition-all text-sm md:text-base ${
                     selectedMood === mood.value
                       ? `${mood.color} border-2 border-slate-300`
                       : 'hover:bg-slate-50 border-2 border-transparent'
@@ -82,18 +138,25 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
                     onChange={(e) => setSelectedMood(e.target.value)}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium">{mood.label}</span>
+                  <span className="font-medium">{mood.label}</span>
                 </label>
               ))}
             </div>
           </div>
+
+          {user && (
+            <MediaUpload 
+              onMediaUpload={handleMediaUpload}
+              currentMedia={mediaUrl ? { url: mediaUrl, type: mediaType } : null}
+            />
+          )}
 
           <div>
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Where are you? (optional)"
-              className="border-slate-200 focus:ring-purple-400"
+              className="border-slate-200 focus:ring-purple-400 text-sm md:text-base"
             />
           </div>
 
@@ -108,21 +171,12 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
             </Label>
           </div>
 
-          {!isAnonymous && (
-            <Input
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Your name (optional)"
-              className="border-slate-200 focus:ring-purple-400"
-            />
-          )}
-
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
-            disabled={!content.trim()}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 text-sm md:text-base py-2 md:py-3"
+            disabled={!content.trim() || isSubmitting}
           >
-            Share Your Soul
+            {isSubmitting ? 'Sharing...' : 'Share Your Soul'}
           </Button>
         </form>
       </CardContent>

@@ -1,5 +1,6 @@
 
 import { Card, CardContent } from '@/components/ui/card';
+import { Music, Video } from 'lucide-react';
 import type { Post } from '@/pages/Index';
 
 interface PostsFeedProps {
@@ -44,9 +45,9 @@ export const PostsFeed = ({ posts }: PostsFeedProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-serif text-slate-800">Recent Souls</h2>
+        <h2 className="text-lg md:text-xl font-serif text-slate-800">Recent Souls</h2>
         <span className="text-sm text-slate-500">{posts.length} posts</span>
       </div>
       
@@ -55,7 +56,7 @@ export const PostsFeed = ({ posts }: PostsFeedProps) => {
           key={post.id}
           className={`${post.color} border-0 shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in`}
         >
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <span className="text-lg">{getMoodEmoji(post.mood)}</span>
@@ -68,9 +69,31 @@ export const PostsFeed = ({ posts }: PostsFeedProps) => {
               </span>
             </div>
             
-            <p className="text-slate-800 leading-relaxed mb-4 text-base">
+            <p className="text-slate-800 leading-relaxed mb-4 text-sm md:text-base">
               {post.content}
             </p>
+            
+            {/* Media content */}
+            {post.mediaUrl && (
+              <div className="mb-4">
+                {post.mediaType === 'audio' ? (
+                  <div className="flex items-center space-x-2 p-3 bg-white/50 rounded-lg">
+                    <Music className="w-5 h-5 text-purple-500" />
+                    <audio controls className="flex-1">
+                      <source src={post.mediaUrl} />
+                      Your browser does not support the audio element.
+                    </audio>
+                  </div>
+                ) : post.mediaType === 'video' ? (
+                  <div className="rounded-lg overflow-hidden">
+                    <video controls className="w-full max-h-64 object-cover">
+                      <source src={post.mediaUrl} />
+                      Your browser does not support the video element.
+                    </video>
+                  </div>
+                ) : null}
+              </div>
+            )}
             
             <div className="flex items-center justify-between text-xs text-slate-500">
               <div className="flex items-center space-x-4">
