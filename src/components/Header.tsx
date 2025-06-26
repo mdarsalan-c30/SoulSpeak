@@ -24,6 +24,7 @@ export const Header = () => {
                 <div className="hidden md:flex items-center space-x-6 text-sm text-slate-600">
                   <Link to="/" className="hover:text-slate-800 transition-colors">Express</Link>
                   <Link to="/notes" className="hover:text-slate-800 transition-colors">Notes</Link>
+                  <Link to="/profile" className="hover:text-slate-800 transition-colors">Profile</Link>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm" asChild className="md:hidden">
@@ -31,8 +32,10 @@ export const Header = () => {
                       <BookOpen className="w-4 h-4" />
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="sm">
-                    <User className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/profile">
+                      <User className="w-4 h-4" />
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="sm" onClick={signOut}>
                     <LogOut className="w-4 h-4" />

@@ -23,9 +23,10 @@ const moods = [
 
 interface PostCreatorProps {
   onSubmit: (post: Omit<Post, 'id' | 'timestamp'>) => void;
+  onPostSaved?: () => void;
 }
 
-export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
+export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
   const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -64,12 +65,14 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
         user_id: user.id
       };
 
-      const { error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('posts')
-        .insert([postData]);
+        .insert([postData])
+        .select()
+        .single();
 
       if (error) {
-        console.log('Database not ready - creating post locally only');
+        throw error;
       }
 
       // Create local post for immediate UI update
@@ -85,6 +88,7 @@ export const PostCreator = ({ onSubmit }: PostCreatorProps) => {
       };
 
       onSubmit(localPost);
+      onPostSaved?.(); // Trigger refresh of posts
 
       // Reset form
       setContent('');

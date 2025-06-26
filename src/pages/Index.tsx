@@ -42,19 +42,19 @@ const samplePosts: Post[] = [
 ];
 
 const Index = () => {
-  const [posts, setPosts] = useState<Post[]>(samplePosts);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [selectedMood, setSelectedMood] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchPosts();
-    }
+    fetchPosts();
   }, [user]);
 
   const fetchPosts = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('posts')
         .select(`
           id,
@@ -71,7 +71,8 @@ const Index = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Posts table not found - using sample posts only');
+        console.log('Posts table error:', error);
+        setPosts(samplePosts);
         return;
       }
 
@@ -91,6 +92,9 @@ const Index = () => {
       setPosts([...formattedPosts, ...samplePosts]);
     } catch (error) {
       console.error('Error fetching posts:', error);
+      setPosts(samplePosts);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,6 +105,11 @@ const Index = () => {
       timestamp: new Date()
     };
     setPosts([post, ...posts]);
+  };
+
+  const handlePostSaved = () => {
+    // Refresh posts from database
+    fetchPosts();
   };
 
   const filteredPosts = selectedMood === 'all' 
@@ -122,7 +131,7 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Left Column - Post Creator */}
           <div className="lg:col-span-1 space-y-6">
-            <PostCreator onSubmit={addPost} />
+            <PostCreator onSubmit={addPost} onPostSaved={handlePostSaved} />
             <MoodFilter 
               selectedMood={selectedMood} 
               onMoodChange={setSelectedMood}
@@ -131,7 +140,14 @@ const Index = () => {
 
           {/* Right Column - Posts Feed */}
           <div className="lg:col-span-2">
-            <PostsFeed posts={filteredPosts} />
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">💭</div>
+                <p className="text-slate-600">Loading feelings...</p>
+              </div>
+            ) : (
+              <PostsFeed posts={filteredPosts} />
+            )}
           </div>
         </div>
       </div>
