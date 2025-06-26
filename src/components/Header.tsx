@@ -2,10 +2,18 @@
 import { Heart, LogOut, User, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
+
+  const handleProfileUpdate = () => {
+    // Force a page refresh when navigating to profile to ensure fresh data
+    if (location.pathname === '/profile') {
+      window.location.reload();
+    }
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
@@ -24,7 +32,7 @@ export const Header = () => {
                 <div className="hidden md:flex items-center space-x-6 text-sm text-slate-600">
                   <Link to="/" className="hover:text-slate-800 transition-colors">Express</Link>
                   <Link to="/notes" className="hover:text-slate-800 transition-colors">Notes</Link>
-                  <Link to="/profile" className="hover:text-slate-800 transition-colors">Profile</Link>
+                  <Link to="/profile" className="hover:text-slate-800 transition-colors" onClick={handleProfileUpdate}>Profile</Link>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm" asChild className="md:hidden">
@@ -33,7 +41,7 @@ export const Header = () => {
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/profile">
+                    <Link to="/profile" onClick={handleProfileUpdate}>
                       <User className="w-4 h-4" />
                     </Link>
                   </Button>

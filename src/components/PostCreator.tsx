@@ -65,6 +65,8 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
         user_id: user.id
       };
 
+      console.log('Submitting post data:', postData);
+
       const { data, error } = await supabase
         .from('posts')
         .insert([postData])
@@ -72,23 +74,11 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
         .single();
 
       if (error) {
+        console.error('Post creation error:', error);
         throw error;
       }
 
-      // Create local post for immediate UI update
-      const localPost: Omit<Post, 'id' | 'timestamp'> = {
-        content: content.trim(),
-        mood: selectedMood,
-        color: selectedMoodData?.color || 'bg-gray-100',
-        isAnonymous,
-        location: location.trim() || undefined,
-        mediaUrl: media?.url,
-        mediaType: media?.type,
-        author: isAnonymous ? undefined : user.email?.split('@')[0]
-      };
-
-      onSubmit(localPost);
-      onPostSaved?.(); // Trigger refresh of posts
+      console.log('Post created successfully:', data);
 
       // Reset form
       setContent('');
@@ -99,6 +89,11 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
         title: "Post created!",
         description: "Your feelings have been shared."
       });
+
+      // Trigger refresh of posts feed
+      if (onPostSaved) {
+        onPostSaved();
+      }
     } catch (error) {
       console.error('Error creating post:', error);
       toast({

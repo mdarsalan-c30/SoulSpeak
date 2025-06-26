@@ -20,27 +20,6 @@ export interface Post {
   mediaType?: string;
 }
 
-const samplePosts: Post[] = [
-  {
-    id: '1',
-    content: "Sometimes I wonder what it would be like to just pack a bag and disappear to a quiet beach town where nobody knows my name...",
-    mood: 'wanderlust',
-    color: 'bg-blue-100',
-    isAnonymous: true,
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    location: "Dreaming of Santorini"
-  },
-  {
-    id: '2',
-    content: "The way you looked at me today made me believe in magic again ✨",
-    mood: 'love',
-    color: 'bg-pink-100',
-    isAnonymous: false,
-    author: 'Maya',
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
-  }
-];
-
 const Index = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedMood, setSelectedMood] = useState<string>('all');
@@ -54,6 +33,7 @@ const Index = () => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
+      console.log('Fetching posts...');
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -71,10 +51,12 @@ const Index = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Posts table error:', error);
-        setPosts(samplePosts);
+        console.error('Posts fetch error:', error);
+        setPosts([]);
         return;
       }
+
+      console.log('Raw posts data:', data);
 
       const formattedPosts = data?.map((post: any) => ({
         id: post.id,
@@ -89,13 +71,19 @@ const Index = () => {
         mediaType: post.media_type
       })) || [];
 
-      setPosts([...formattedPosts, ...samplePosts]);
+      console.log('Formatted posts:', formattedPosts);
+      setPosts(formattedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      setPosts(samplePosts);
+      setPosts([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePostSaved = () => {
+    console.log('Post saved, refreshing feed...');
+    fetchPosts();
   };
 
   const addPost = (newPost: Omit<Post, 'id' | 'timestamp'>) => {
@@ -105,11 +93,6 @@ const Index = () => {
       timestamp: new Date()
     };
     setPosts([post, ...posts]);
-  };
-
-  const handlePostSaved = () => {
-    // Refresh posts from database
-    fetchPosts();
   };
 
   const filteredPosts = selectedMood === 'all' 
