@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { PostCreator } from '@/components/PostCreator';
 import { MoodFilter } from '@/components/MoodFilter';
@@ -13,10 +14,12 @@ export interface Post {
   color: string;
   isAnonymous: boolean;
   author?: string;
+  authorId?: string;
   timestamp: Date;
   location?: string;
   mediaUrl?: string;
   mediaType?: string;
+  likeCount?: number;
 }
 
 const Index = () => {
@@ -87,10 +90,12 @@ const Index = () => {
           color: post.color,
           isAnonymous: post.is_anonymous,
           author: post.is_anonymous ? undefined : (profile?.username || 'Unknown User'),
+          authorId: post.is_anonymous ? undefined : post.user_id,
           timestamp: new Date(post.created_at),
           location: post.location,
           mediaUrl: post.media_url,
-          mediaType: post.media_type
+          mediaType: post.media_type,
+          likeCount: post.like_count || 0
         };
       });
 
@@ -128,13 +133,15 @@ const Index = () => {
       
       <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
         <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-800 mb-4">SoulSpeak</h1>
-          <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto px-4">
-            A safe space for your unsaid feelings. Share anonymously, connect authentically, express freely.
+          <h1 className="text-4xl md:text-5xl font-serif text-slate-800 mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            SoulSpeak
+          </h1>
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Where hearts connect, souls speak, and feelings find their voice
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Creator */}
           <div className="lg:col-span-1 space-y-6">
             <PostCreator onSubmit={addPost} onPostSaved={handlePostSaved} />
@@ -147,9 +154,10 @@ const Index = () => {
           {/* Right Column - Posts Feed */}
           <div className="lg:col-span-2">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">💭</div>
-                <p className="text-slate-600">Loading feelings...</p>
+              <div className="text-center py-16">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
+                <div className="text-6xl mb-4">💭</div>
+                <p className="text-slate-600 text-lg">Loading beautiful souls...</p>
               </div>
             ) : (
               <PostsFeed posts={filteredPosts} />

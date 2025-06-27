@@ -1,6 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Music, Video } from 'lucide-react';
+import { Music, Video, Globe2 } from 'lucide-react';
+import { PostActions } from '@/components/PostActions';
 import type { Post } from '@/pages/Index';
 
 interface PostsFeedProps {
@@ -23,8 +24,11 @@ const formatTimeAgo = (date: Date) => {
 const getMoodEmoji = (mood: string) => {
   const moodMap = {
     love: '❤️',
-    heartbreak: '💔',
+    joy: '☀️',
+    melancholy: '☁️',
     wanderlust: '🌍',
+    excitement: '⚡',
+    heartbreak: '💔',
     lost: '😶',
     hopeful: '🌈',
     nostalgic: '🍂',
@@ -33,60 +37,104 @@ const getMoodEmoji = (mood: string) => {
   return moodMap[mood as keyof typeof moodMap] || '✨';
 };
 
+const getMoodGradient = (mood: string) => {
+  const gradients = {
+    love: 'from-pink-100 via-rose-50 to-red-50',
+    joy: 'from-yellow-100 via-amber-50 to-orange-50',
+    melancholy: 'from-blue-100 via-indigo-50 to-purple-50',
+    wanderlust: 'from-green-100 via-emerald-50 to-teal-50',
+    excitement: 'from-orange-100 via-yellow-50 to-red-50'
+  };
+  return gradients[mood as keyof typeof gradients] || 'from-gray-50 via-slate-50 to-gray-100';
+};
+
 export const PostsFeed = ({ posts }: PostsFeedProps) => {
   if (posts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">🤍</div>
-        <h3 className="text-xl font-medium text-slate-600 mb-2">No posts yet</h3>
-        <p className="text-slate-500">Be the first to share your feelings</p>
+      <div className="text-center py-16">
+        <div className="text-8xl mb-6 opacity-40">🤍</div>
+        <h3 className="text-2xl font-serif text-slate-600 mb-3">No souls have spoken yet</h3>
+        <p className="text-slate-500">Be the first to share your beautiful feelings</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg md:text-xl font-serif text-slate-800">Recent Souls</h2>
-        <span className="text-sm text-slate-500">{posts.length} posts</span>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-serif text-slate-800 flex items-center">
+          <Globe2 className="w-6 h-6 mr-2 text-purple-500" />
+          Soul Feed
+        </h2>
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-sm text-slate-500">{posts.length} souls speaking</span>
+        </div>
       </div>
       
       {posts.map((post) => (
         <Card
           key={post.id}
-          className={`${post.color} border-0 shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in`}
+          className={`border-0 shadow-lg hover:shadow-xl transition-all duration-500 animate-fade-in bg-gradient-to-br ${getMoodGradient(post.mood)} backdrop-blur-sm`}
         >
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-lg">{getMoodEmoji(post.mood)}</span>
-                <span className="text-sm font-medium text-slate-700 capitalize">
-                  {post.mood}
-                </span>
+          <CardContent className="p-0">
+            {/* Post Header */}
+            <div className="p-6 pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-serif text-lg shadow-md">
+                    {post.isAnonymous ? '🎭' : (post.author?.[0]?.toUpperCase() || '?')}
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">
+                      {post.isAnonymous ? 'Anonymous Soul' : (post.author || 'Unknown Soul')}
+                    </p>
+                    <div className="flex items-center space-x-2 text-sm text-slate-500">
+                      <span>{formatTimeAgo(post.timestamp)}</span>
+                      {post.location && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center">
+                            📍 {post.location}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <div className="text-2xl">{getMoodEmoji(post.mood)}</div>
+                  <span className="text-sm font-medium text-slate-700 capitalize bg-white/50 px-3 py-1 rounded-full">
+                    {post.mood}
+                  </span>
+                </div>
               </div>
-              <span className="text-xs text-slate-500">
-                {formatTimeAgo(post.timestamp)}
-              </span>
+            </div>
+
+            {/* Post Content */}
+            <div className="px-6 pb-4">
+              <p className="text-slate-800 leading-relaxed text-base">
+                {post.content}
+              </p>
             </div>
             
-            <p className="text-slate-800 leading-relaxed mb-4 text-sm md:text-base">
-              {post.content}
-            </p>
-            
-            {/* Media content */}
+            {/* Media Content */}
             {post.mediaUrl && (
-              <div className="mb-4">
+              <div className="px-6 pb-4">
                 {post.mediaType === 'audio' ? (
-                  <div className="flex items-center space-x-2 p-3 bg-white/50 rounded-lg">
-                    <Music className="w-5 h-5 text-purple-500" />
+                  <div className="flex items-center space-x-3 p-4 bg-white/60 rounded-xl backdrop-blur-sm">
+                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center">
+                      <Music className="w-5 h-5 text-white" />
+                    </div>
                     <audio controls className="flex-1">
                       <source src={post.mediaUrl} />
                       Your browser does not support the audio element.
                     </audio>
                   </div>
                 ) : post.mediaType === 'video' ? (
-                  <div className="rounded-lg overflow-hidden">
-                    <video controls className="w-full max-h-64 object-cover">
+                  <div className="rounded-xl overflow-hidden shadow-md">
+                    <video controls className="w-full max-h-80 object-cover">
                       <source src={post.mediaUrl} />
                       Your browser does not support the video element.
                     </video>
@@ -95,18 +143,14 @@ export const PostsFeed = ({ posts }: PostsFeedProps) => {
               </div>
             )}
             
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <div className="flex items-center space-x-4">
-                <span>
-                  {post.isAnonymous ? 'Anonymous soul' : `by ${post.author || 'Unknown'}`}
-                </span>
-                {post.location && (
-                  <span className="flex items-center space-x-1">
-                    <span>📍</span>
-                    <span>{post.location}</span>
-                  </span>
-                )}
-              </div>
+            {/* Post Actions */}
+            <div className="px-6 pb-6">
+              <PostActions
+                postId={post.id}
+                authorId={post.isAnonymous ? undefined : post.author}
+                isAnonymous={post.isAnonymous}
+                initialLikeCount={post.likeCount || 0}
+              />
             </div>
           </CardContent>
         </Card>

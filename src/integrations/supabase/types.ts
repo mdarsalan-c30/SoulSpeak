@@ -42,6 +42,35 @@ export type Database = {
         }
         Relationships: []
       }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           color: string
@@ -49,6 +78,7 @@ export type Database = {
           created_at: string
           id: string
           is_anonymous: boolean
+          like_count: number | null
           location: string | null
           media_type: string | null
           media_url: string | null
@@ -63,6 +93,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_anonymous?: boolean
+          like_count?: number | null
           location?: string | null
           media_type?: string | null
           media_url?: string | null
@@ -77,6 +108,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_anonymous?: boolean
+          like_count?: number | null
           location?: string | null
           media_type?: string | null
           media_url?: string | null
@@ -108,6 +140,27 @@ export type Database = {
           id?: string
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
         }
         Relationships: []
       }
