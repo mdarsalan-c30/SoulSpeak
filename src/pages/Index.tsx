@@ -1,9 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { MoodFilter } from '@/components/MoodFilter';
+import { MoodFilterHorizontal } from '@/components/MoodFilterHorizontal';
 import { PostsFeed } from '@/components/PostsFeed';
 import { Header } from '@/components/Header';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
+import { StatusCreator } from '@/components/StatusCreator';
+import { StatusFeed } from '@/components/StatusFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -37,7 +39,6 @@ const Index = () => {
     try {
       console.log('Fetching posts...');
       
-      // First, get all posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -57,14 +58,12 @@ const Index = () => {
         return;
       }
 
-      // Get unique user IDs from non-anonymous posts
       const userIds = [...new Set(
         postsData
           .filter(post => !post.is_anonymous && post.user_id)
           .map(post => post.user_id)
       )];
 
-      // Fetch usernames for non-anonymous posts
       let profiles: any[] = [];
       if (userIds.length > 0) {
         const { data: profilesData, error: profilesError } = await supabase
@@ -79,7 +78,6 @@ const Index = () => {
         }
       }
 
-      // Map posts with usernames
       const formattedPosts: Post[] = postsData.map((post: any) => {
         const profile = profiles.find(p => p.id === post.user_id);
         
@@ -114,6 +112,11 @@ const Index = () => {
     fetchPosts();
   };
 
+  const handleStatusCreated = () => {
+    // Status feed will refresh automatically
+    console.log('Status created!');
+  };
+
   const addPost = (newPost: Omit<Post, 'id' | 'timestamp'>) => {
     const post: Post = {
       ...newPost,
@@ -128,34 +131,48 @@ const Index = () => {
     : posts.filter(post => post.mood === selectedMood);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-4xl mx-auto px-4 py-6 md:py-8">
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-4xl md:text-5xl font-serif text-slate-800 mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            SoulSpeak
-          </h1>
-          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Where hearts connect, souls speak, and feelings find their voice
-          </p>
-        </div>
+      <div className="max-w-md mx-auto bg-white min-h-screen">
+        {/* Status Section */}
+        {user && (
+          <div className="p-4 border-b border-gray-100">
+            <StatusCreator onStatusCreated={handleStatusCreated} />
+            <StatusFeed />
+          </div>
+        )}
 
         {/* Mood Filter */}
-        <div className="mb-8 flex justify-center">
-          <MoodFilter 
+        <div className="px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-10">
+          <MoodFilterHorizontal 
             selectedMood={selectedMood} 
             onMoodChange={setSelectedMood}
           />
         </div>
 
         {/* Posts Feed */}
-        <div className="max-w-2xl mx-auto">
+        <div className="pb-20">
           {loading ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
-              <div className="text-6xl mb-4">💭</div>
-              <p className="text-slate-600 text-lg">Loading beautiful souls...</p>
+            <div className="flex flex-col space-y-4 p-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-sm border animate-pulse">
+                  <div className="p-4">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div className="h-20 bg-gray-200 rounded mb-4"></div>
+                    <div className="flex justify-between">
+                      <div className="h-8 bg-gray-200 rounded w-16"></div>
+                      <div className="h-8 bg-gray-200 rounded w-16"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <PostsFeed posts={filteredPosts} />

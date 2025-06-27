@@ -39,7 +39,7 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, bio')
         .eq('id', user?.id)
         .single();
 
@@ -51,7 +51,7 @@ const Profile = () => {
         setProfile({
           username: data.username || '',
           avatar_url: data.avatar_url || '',
-          bio: '' // We'll add bio to the profiles table later
+          bio: data.bio || ''
         });
       }
     } catch (error) {
@@ -97,6 +97,7 @@ const Profile = () => {
           id: user.id,
           username: profile.username,
           avatar_url: profile.avatar_url,
+          bio: profile.bio,
           updated_at: new Date().toISOString()
         });
 
@@ -289,6 +290,11 @@ const Profile = () => {
                   disabled={!editing}
                   className="mt-1 min-h-[100px]"
                 />
+                {!editing && profile.bio && (
+                  <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                    <p className="text-slate-700 whitespace-pre-wrap">{profile.bio}</p>
+                  </div>
+                )}
               </div>
             </div>
 

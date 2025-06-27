@@ -122,6 +122,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           id: string
           updated_at: string
@@ -129,6 +130,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           id: string
           updated_at?: string
@@ -136,10 +138,79 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           id?: string
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      status_likes: {
+        Row: {
+          created_at: string
+          id: string
+          status_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_likes_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "status_updates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_updates: {
+        Row: {
+          audio_url: string | null
+          color: string
+          content: string | null
+          created_at: string
+          emoji: string | null
+          expires_at: string
+          id: string
+          like_count: number | null
+          mood: string
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          color?: string
+          content?: string | null
+          created_at?: string
+          emoji?: string | null
+          expires_at?: string
+          id?: string
+          like_count?: number | null
+          mood: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          color?: string
+          content?: string | null
+          created_at?: string
+          emoji?: string | null
+          expires_at?: string
+          id?: string
+          like_count?: number | null
+          mood?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -6,8 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { MapPin, Heart, Sparkles, Cloud, Sun, Zap } from 'lucide-react';
-import { MediaUpload } from '@/components/MediaUpload';
+import { MapPin, Heart, Sparkles, Cloud, Sun, Zap, Image, Music } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,7 +30,8 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
   const [location, setLocation] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [selectedMood, setSelectedMood] = useState('love');
-  const [media, setMedia] = useState<{ url: string; type: string } | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { user } = useAuth();
@@ -53,6 +53,46 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
     setIsSubmitting(true);
 
     try {
+      let mediaUrl = null;
+      let mediaType = null;
+
+      // Upload image if present
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(fileName);
+        
+        mediaUrl = publicUrl;
+        mediaType = 'image';
+      }
+      // Upload audio if present and no image
+      else if (audioFile) {
+        const fileExt = audioFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(fileName, audioFile);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(fileName);
+        
+        mediaUrl = publicUrl;
+        mediaType = 'audio';
+      }
+
       const selectedMoodData = moods.find(m => m.name === selectedMood);
       const postData = {
         content: content.trim(),
@@ -60,8 +100,8 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
         color: selectedMoodData?.color || 'bg-gray-100',
         is_anonymous: isAnonymous,
         location: location.trim() || null,
-        media_url: media?.url || null,
-        media_type: media?.type || null,
+        media_url: mediaUrl,
+        media_type: mediaType,
         user_id: user.id
       };
 
@@ -83,7 +123,8 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
       // Reset form
       setContent('');
       setLocation('');
-      setMedia(null);
+      setImageFile(null);
+      setAudioFile(null);
       
       toast({
         title: "Post created!",
@@ -103,14 +144,6 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleMediaUpload = (url: string, type: string) => {
-    if (url && type) {
-      setMedia({ url, type });
-    } else {
-      setMedia(null);
     }
   };
 
@@ -160,7 +193,73 @@ export const PostCreator = ({ onSubmit, onPostSaved }: PostCreatorProps) => {
             />
           </div>
 
-          <MediaUpload onMediaUpload={handleMediaUpload} currentMedia={media} />
+          {/* Media Upload Section */}
+          <div className="space-y-3">
+            <div className="flex space-x-4">
+              <div className="flex-1">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      setImageFile(e.target.files?.[0] || null);
+                      if (e.target.files?.[0]) setAudioFile(null);
+                    }}
+                    className="hidden"
+                  />
+                  <div className="flex items-center space-x-2 p-3 border-2 border-dashed border-slate-200 rounded-lg hover:border-purple-300 transition-colors">
+                    <Image className="w-5 h-5 text-slate-500" />
+                    <span className="text-sm text-slate-600">Add Image</span>
+                  </div>
+                </label>
+              </div>
+              
+              <div className="flex-1">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => {
+                      setAudioFile(e.target.files?.[0] || null);
+                      if (e.target.files?.[0]) setImageFile(null);
+                    }}
+                    className="hidden"
+                  />
+                  <div className="flex items-center space-x-2 p-3 border-2 border-dashed border-slate-200 rounded-lg hover:border-purple-300 transition-colors">
+                    <Music className="w-5 h-5 text-slate-500" />
+                    <span className="text-sm text-slate-600">Add Audio</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* File previews */}
+            {imageFile && (
+              <div className="p-3 bg-slate-50 rounded-lg flex items-center justify-between">
+                <span className="text-sm text-slate-600">🖼️ {imageFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setImageFile(null)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {audioFile && (
+              <div className="p-3 bg-slate-50 rounded-lg flex items-center justify-between">
+                <span className="text-sm text-slate-600">🎵 {audioFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setAudioFile(null)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
