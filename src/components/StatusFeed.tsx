@@ -26,6 +26,7 @@ export const StatusFeed = () => {
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [likedStatuses, setLikedStatuses] = useState<Set<string>>(new Set());
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement}>({});
   const [loading, setLoading] = useState(true);
   
   const { user } = useAuth();
@@ -159,10 +160,39 @@ export const StatusFeed = () => {
     }
   };
 
-  const toggleAudio = (statusId: string) => {
+  const toggleAudio = (statusId: string, audioUrl: string) => {
     if (playingAudio === statusId) {
+      // Stop current audio
+      if (audioElements[statusId]) {
+        audioElements[statusId].pause();
+        audioElements[statusId].currentTime = 0;
+      }
       setPlayingAudio(null);
     } else {
+      // Stop any currently playing audio
+      if (playingAudio && audioElements[playingAudio]) {
+        audioElements[playingAudio].pause();
+        audioElements[playingAudio].currentTime = 0;
+      }
+      
+      // Create or get audio element
+      let audio = audioElements[statusId];
+      if (!audio) {
+        audio = new Audio(audioUrl);
+        audio.onended = () => setPlayingAudio(null);
+        setAudioElements(prev => ({ ...prev, [statusId]: audio }));
+      }
+      
+      // Play new audio
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Error",
+          description: "Failed to play audio",
+          variant: "destructive"
+        });
+      });
+      
       setPlayingAudio(statusId);
     }
   };
@@ -179,9 +209,9 @@ export const StatusFeed = () => {
 
   if (loading) {
     return (
-      <div className="flex space-x-4 overflow-x-auto pb-4 mb-6">
+      <div className="flex space-x-3 overflow-x-auto pb-4 mb-6 px-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-20 h-28 bg-slate-200 rounded-xl animate-pulse" />
+          <div key={i} className="flex-shrink-0 w-16 h-24 bg-gradient-to-b from-gray-200 to-gray-300 rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -189,7 +219,7 @@ export const StatusFeed = () => {
 
   if (statuses.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500">
+      <div className="text-center py-8 text-slate-500 px-4">
         <div className="text-4xl mb-2">✨</div>
         <p>No status updates yet</p>
       </div>
@@ -197,16 +227,19 @@ export const StatusFeed = () => {
   }
 
   return (
-    <div className="flex space-x-4 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+    <div className="flex space-x-3 overflow-x-auto pb-4 mb-6 px-4 scrollbar-hide">
       {statuses.map((status) => (
         <div
           key={status.id}
-          className={`flex-shrink-0 w-20 h-28 rounded-xl p-3 ${status.color} border-2 ${
-            user?.id === status.user_id ? 'border-purple-400' : 'border-transparent'
-          } relative cursor-pointer hover:scale-105 transition-transform`}
+          className={`flex-shrink-0 w-16 h-24 rounded-xl p-2 ${status.color} border-2 ${
+            user?.id === status.user_id ? 'border-purple-400 ring-2 ring-purple-200' : 'border-white/50'
+          } relative cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg`}
+          style={{
+            background: `linear-gradient(135deg, ${status.color.replace('bg-', 'var(--')}), ${status.color.replace('bg-', 'var(--')}-600)`
+          }}
         >
           {/* Avatar */}
-          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-medium mb-2 mx-auto">
+          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold mb-1 mx-auto border-2 border-white/30 shadow-sm">
             {status.profiles?.avatar_url ? (
               <img 
                 src={status.profiles.avatar_url} 
@@ -214,40 +247,48 @@ export const StatusFeed = () => {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <span className="text-slate-600">
+              <span className="text-slate-700">
                 {status.profiles?.username?.[0]?.toUpperCase() || '?'}
               </span>
             )}
           </div>
 
           {/* Content */}
-          <div className="text-center">
+          <div className="text-center flex-1 flex flex-col items-center justify-center">
             {status.emoji && (
-              <div className="text-lg mb-1">{status.emoji}</div>
+              <div className="text-sm mb-1">{status.emoji}</div>
             )}
             {status.content && (
-              <p className="text-xs text-slate-700 font-medium truncate">
+              <p className="text-xs text-white font-semibold truncate max-w-full drop-shadow-sm">
                 {status.content}
               </p>
             )}
-            {status.audio_url && (
-              <button
-                onClick={() => toggleAudio(status.id)}
-                className="mt-1 p-1 rounded-full bg-white/50 hover:bg-white/80 transition-colors"
-              >
-                {playingAudio === status.id ? (
-                  <Pause className="w-3 h-3" />
-                ) : (
-                  <Play className="w-3 h-3" />
-                )}
-              </button>
-            )}
           </div>
+
+          {/* Audio button */}
+          {status.audio_url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleAudio(status.id, status.audio_url);
+              }}
+              className="absolute bottom-8 right-1 p-1 rounded-full bg-white/90 hover:bg-white transition-colors shadow-lg"
+            >
+              {playingAudio === status.id ? (
+                <Pause className="w-3 h-3 text-purple-600" />
+              ) : (
+                <Play className="w-3 h-3 text-purple-600" />
+              )}
+            </button>
+          )}
 
           {/* Like button */}
           <button
-            onClick={() => handleLike(status.id)}
-            className="absolute bottom-1 right-1 p-1 rounded-full bg-white/50 hover:bg-white/80 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike(status.id);
+            }}
+            className="absolute bottom-1 right-1 p-1 rounded-full bg-white/90 hover:bg-white transition-colors shadow-lg"
           >
             <Heart 
               className={`w-3 h-3 ${
@@ -258,26 +299,15 @@ export const StatusFeed = () => {
 
           {/* Like count */}
           {status.like_count > 0 && (
-            <div className="absolute top-1 right-1 text-xs bg-white/80 rounded-full px-1 py-0.5 text-slate-600">
+            <div className="absolute top-1 right-1 text-xs bg-white/90 rounded-full px-1.5 py-0.5 text-slate-700 font-bold shadow-sm">
               {status.like_count}
             </div>
           )}
 
           {/* Time */}
-          <div className="absolute bottom-1 left-1 text-xs text-slate-500 bg-white/50 rounded px-1">
+          <div className="absolute bottom-1 left-1 text-xs text-white/90 bg-black/20 rounded-full px-1.5 py-0.5 font-medium">
             {formatTimeAgo(status.created_at)}
           </div>
-
-          {/* Audio player */}
-          {status.audio_url && playingAudio === status.id && (
-            <audio
-              autoPlay
-              onEnded={() => setPlayingAudio(null)}
-              className="hidden"
-            >
-              <source src={status.audio_url} />
-            </audio>
-          )}
         </div>
       ))}
     </div>

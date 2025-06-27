@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Share, UserPlus, UserMinus } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -184,57 +184,76 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
   };
 
   return (
-    <div className="flex items-center justify-between pt-3 border-t border-white/20">
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLike}
-          disabled={loading}
-          className={`p-2 hover:bg-white/10 transition-colors ${
-            liked ? 'text-red-500' : 'text-slate-600'
-          }`}
-        >
-          <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-          <span className="ml-1 text-sm">{likeCount}</span>
-        </Button>
+    <div className="space-y-2">
+      {/* Action Buttons Row - Instagram Style */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            disabled={loading}
+            className={`p-2 hover:bg-gray-100 transition-all duration-200 ${
+              liked ? 'text-red-500' : 'text-slate-700'
+            }`}
+          >
+            <Heart className={`w-6 h-6 ${liked ? 'fill-current animate-pulse' : ''}`} />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onComment}
+            className="p-2 text-slate-700 hover:bg-gray-100 transition-colors"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleShare}
+            className="p-2 text-slate-700 hover:bg-gray-100 transition-colors"
+          >
+            <Send className="w-6 h-6" />
+          </Button>
+        </div>
 
         <Button
           variant="ghost"
           size="sm"
-          onClick={onComment}
-          className="p-2 text-slate-600 hover:bg-white/10 transition-colors"
+          className="p-2 text-slate-700 hover:bg-gray-100 transition-colors"
         >
-          <MessageCircle className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleShare}
-          className="p-2 text-slate-600 hover:bg-white/10 transition-colors"
-        >
-          <Share className="w-5 h-5" />
+          <Bookmark className="w-6 h-6" />
         </Button>
       </div>
 
-      {!isAnonymous && authorId && user && authorId !== user.id && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleFollow}
-          disabled={loading}
-          className={`p-2 transition-colors ${
-            following 
-              ? 'text-purple-600 hover:bg-purple-50' 
-              : 'text-slate-600 hover:bg-white/10'
-          }`}
-        >
-          {following ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-          <span className="ml-1 text-sm">
-            {following ? 'Following' : 'Follow'}
+      {/* Like Count */}
+      {likeCount > 0 && (
+        <div className="px-2">
+          <span className="text-sm font-semibold text-slate-900">
+            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
           </span>
-        </Button>
+        </div>
+      )}
+
+      {/* Follow Button for Non-Anonymous Posts */}
+      {!isAnonymous && authorId && user && authorId !== user.id && (
+        <div className="px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFollow}
+            disabled={loading}
+            className={`text-sm font-semibold ${
+              following 
+                ? 'text-slate-500 hover:text-slate-700' 
+                : 'text-blue-500 hover:text-blue-700'
+            }`}
+          >
+            {following ? 'Following' : 'Follow'}
+          </Button>
+        </div>
       )}
     </div>
   );
