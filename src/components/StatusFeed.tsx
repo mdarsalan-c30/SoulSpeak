@@ -40,17 +40,43 @@ export const StatusFeed = () => {
 
   const fetchStatuses = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the status updates
+      const { data: statusData, error: statusError } = await supabase
         .from('status_updates')
-        .select(`
-          *,
-          profiles:user_id (username, avatar_url)
-        `)
+        .select('*')
+        .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      setStatuses(data || []);
+      if (statusError) throw statusError;
+
+      if (!statusData || statusData.length === 0) {
+        setStatuses([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(statusData.map(status => status.user_id))];
+
+      // Fetch profiles separately
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Continue with statuses but without profile data
+      }
+
+      // Combine the data
+      const statusesWithProfiles = statusData.map(status => ({
+        ...status,
+        profiles: profilesData?.find(profile => profile.id === status.user_id) || null
+      }));
+
+      setStatuses(statusesWithProfiles);
     } catch (error) {
       console.error('Error fetching statuses:', error);
     } finally {
