@@ -147,9 +147,10 @@ export const PostsFeed = ({ posts }: PostsFeedProps) => {
             <div className="px-6 pb-6">
               <PostActions
                 postId={post.id}
-                authorId={post.isAnonymous ? undefined : post.author}
+                authorId={post.authorId}
                 isAnonymous={post.isAnonymous}
                 initialLikeCount={post.likeCount || 0}
+                onComment={() => console.log('Comment clicked for post:', post.id)}
               />
             </div>
           </CardContent>

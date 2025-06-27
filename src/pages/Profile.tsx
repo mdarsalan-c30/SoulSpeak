@@ -10,7 +10,7 @@ import { Header } from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Edit, Save, X } from 'lucide-react';
+import { User, Edit, Save, X, Users, UserCheck, Upload } from 'lucide-react';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -23,10 +23,15 @@ const Profile = () => {
     avatar_url: '',
     bio: ''
   });
+  const [followStats, setFollowStats] = useState({
+    followers: 0,
+    following: 0
+  });
 
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchFollowStats();
     }
   }, [user]);
 
@@ -53,6 +58,31 @@ const Profile = () => {
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFollowStats = async () => {
+    if (!user) return;
+
+    try {
+      // Get followers count
+      const { count: followersCount } = await supabase
+        .from('user_follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', user.id);
+
+      // Get following count
+      const { count: followingCount } = await supabase
+        .from('user_follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', user.id);
+
+      setFollowStats({
+        followers: followersCount || 0,
+        following: followingCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching follow stats:', error);
     }
   };
 
@@ -94,6 +124,18 @@ const Profile = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // For now, we'll just show a message about file upload
+    // In a real app, you'd upload to Supabase storage
+    toast({
+      title: "File upload coming soon!",
+      description: "Profile picture upload will be available soon. For now, you can use an image URL.",
+    });
   };
 
   if (!user) {
@@ -151,20 +193,58 @@ const Profile = () => {
               </Avatar>
               
               {editing && (
-                <div className="w-full max-w-md">
-                  <Label htmlFor="avatar" className="text-sm font-medium text-slate-700">
-                    Avatar URL
-                  </Label>
-                  <Input
-                    id="avatar"
-                    type="url"
-                    value={profile.avatar_url}
-                    onChange={(e) => handleInputChange('avatar_url', e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="mt-1"
-                  />
+                <div className="w-full max-w-md space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Photo</span>
+                    </Button>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="avatar" className="text-sm font-medium text-slate-700">
+                      Or use image URL
+                    </Label>
+                    <Input
+                      id="avatar"
+                      type="url"
+                      value={profile.avatar_url}
+                      onChange={(e) => handleInputChange('avatar_url', e.target.value)}
+                      placeholder="https://example.com/avatar.jpg"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Follow Stats */}
+            <div className="flex justify-center space-x-8 py-4 border-b border-slate-200">
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-1 text-2xl font-bold text-slate-800">
+                  <Users className="w-5 h-5" />
+                  <span>{followStats.followers}</span>
+                </div>
+                <p className="text-sm text-slate-600">Followers</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-1 text-2xl font-bold text-slate-800">
+                  <UserCheck className="w-5 h-5" />
+                  <span>{followStats.following}</span>
+                </div>
+                <p className="text-sm text-slate-600">Following</p>
+              </div>
             </div>
 
             {/* Profile Information */}

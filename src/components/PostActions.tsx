@@ -12,9 +12,10 @@ interface PostActionsProps {
   isAnonymous: boolean;
   initialLikeCount: number;
   onShare?: () => void;
+  onComment?: () => void;
 }
 
-export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, onShare }: PostActionsProps) => {
+export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, onShare, onComment }: PostActionsProps) => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(initialLikeCount || 0);
   const [following, setFollowing] = useState(false);
@@ -25,7 +26,7 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
   useEffect(() => {
     if (user) {
       checkLikeStatus();
-      if (!isAnonymous && authorId) {
+      if (!isAnonymous && authorId && authorId !== user.id) {
         checkFollowStatus();
       }
     }
@@ -45,6 +46,7 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
       setLiked(!!data);
     } catch (error) {
       // No like found, which is fine
+      setLiked(false);
     }
   };
 
@@ -62,6 +64,7 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
       setFollowing(!!data);
     } catch (error) {
       // No follow found, which is fine
+      setFollowing(false);
     }
   };
 
@@ -79,19 +82,23 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
     try {
       if (liked) {
         // Unlike
-        await supabase
+        const { error } = await supabase
           .from('post_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
+
+        if (error) throw error;
         
         setLiked(false);
-        setLikeCount(prev => prev - 1);
+        setLikeCount(prev => Math.max(0, prev - 1));
       } else {
         // Like
-        await supabase
+        const { error } = await supabase
           .from('post_likes')
           .insert({ post_id: postId, user_id: user.id });
+
+        if (error) throw error;
         
         setLiked(true);
         setLikeCount(prev => prev + 1);
@@ -115,27 +122,31 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
     try {
       if (following) {
         // Unfollow
-        await supabase
+        const { error } = await supabase
           .from('user_follows')
           .delete()
           .eq('follower_id', user.id)
           .eq('following_id', authorId);
+
+        if (error) throw error;
         
         setFollowing(false);
         toast({
           title: "Unfollowed",
-          description: "You are no longer following this soul"
+          description: "You are no longer following this soul",
         });
       } else {
         // Follow
-        await supabase
+        const { error } = await supabase
           .from('user_follows')
           .insert({ follower_id: user.id, following_id: authorId });
+
+        if (error) throw error;
         
         setFollowing(true);
         toast({
           title: "Following",
-          description: "You are now following this beautiful soul"
+          description: "You are now following this beautiful soul ✨",
         });
       }
     } catch (error) {
@@ -191,6 +202,7 @@ export const PostActions = ({ postId, authorId, isAnonymous, initialLikeCount, o
         <Button
           variant="ghost"
           size="sm"
+          onClick={onComment}
           className="p-2 text-slate-600 hover:bg-white/10 transition-colors"
         >
           <MessageCircle className="w-5 h-5" />

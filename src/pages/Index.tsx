@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { PostCreator } from '@/components/PostCreator';
 import { MoodFilter } from '@/components/MoodFilter';
 import { PostsFeed } from '@/components/PostsFeed';
 import { Header } from '@/components/Header';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -131,7 +131,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
       <Header />
       
-      <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6 md:py-8">
         <div className="text-center mb-8 md:mb-12">
           <h1 className="text-4xl md:text-5xl font-serif text-slate-800 mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             SoulSpeak
@@ -141,29 +141,34 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Post Creator */}
-          <div className="lg:col-span-1 space-y-6">
-            <PostCreator onSubmit={addPost} onPostSaved={handlePostSaved} />
-            <MoodFilter 
-              selectedMood={selectedMood} 
-              onMoodChange={setSelectedMood}
-            />
-          </div>
-
-          {/* Right Column - Posts Feed */}
-          <div className="lg:col-span-2">
-            {loading ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
-                <div className="text-6xl mb-4">💭</div>
-                <p className="text-slate-600 text-lg">Loading beautiful souls...</p>
-              </div>
-            ) : (
-              <PostsFeed posts={filteredPosts} />
-            )}
-          </div>
+        {/* Mood Filter */}
+        <div className="mb-8 flex justify-center">
+          <MoodFilter 
+            selectedMood={selectedMood} 
+            onMoodChange={setSelectedMood}
+          />
         </div>
+
+        {/* Posts Feed */}
+        <div className="max-w-2xl mx-auto">
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
+              <div className="text-6xl mb-4">💭</div>
+              <p className="text-slate-600 text-lg">Loading beautiful souls...</p>
+            </div>
+          ) : (
+            <PostsFeed posts={filteredPosts} />
+          )}
+        </div>
+
+        {/* Floating Add Button */}
+        {user && (
+          <FloatingAddButton 
+            onSubmit={addPost} 
+            onPostSaved={handlePostSaved}
+          />
+        )}
       </div>
     </div>
   );
